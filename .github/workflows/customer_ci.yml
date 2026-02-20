@@ -34,6 +34,10 @@ jobs:
       run: |
         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-
+        
+    - name: Cleanup Docker
+      if: always()
+      run: |
+        docker system prune -af
       
         
