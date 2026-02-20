@@ -24,6 +24,7 @@ jobs:
         uses: github/codeql-action/init@v4
         with:
           languages: java  # Change if needed (e.g., python, java, csharp)
+          queries: security-extended
 
       - name: Autobuild
         uses: github/codeql-action/autobuild@v4
