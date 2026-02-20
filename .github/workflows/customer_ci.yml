@@ -11,7 +11,7 @@ jobs:
 
   SAST:
     name: CodeQL Scan
-    runs-on: self-hosted   # or ubuntu-latest (recommended)
+    runs-on: ubuntu-latest   # or ubuntu-latest (recommended)
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
