@@ -1,4 +1,4 @@
-name: Frontend CI Workflow
+name: Customer CI Pipeline
 
 on:
   workflow_dispatch:
