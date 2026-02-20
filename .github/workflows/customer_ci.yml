@@ -10,7 +10,7 @@ on:
 jobs:
   build:
     environment: dev 
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
     - name: Clone Repository
       uses: actions/checkout@v4
