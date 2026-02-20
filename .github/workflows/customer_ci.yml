@@ -8,7 +8,26 @@ on:
   #   branches: [ "main" ]
 
 jobs:
-  build:
+
+  SAST:
+    name: CodeQL Scan
+    runs-on: self-hosted   # or ubuntu-latest (recommended)
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: java  # Change if needed (e.g., python, java, csharp)
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        
+  BUILD:
     environment: dev 
     runs-on: self-hosted
     steps:
