@@ -3,6 +3,10 @@ name: customer CI Pipeline
 on:
   workflow_dispatch: 
 
+permissions:
+  id-token: write     # 🔥 REQUIRED for OIDC
+  contents: read
+
 jobs:
   BUILD:
     runs-on: ubuntu-latest
