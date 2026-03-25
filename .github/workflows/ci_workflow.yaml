@@ -2,10 +2,8 @@ name: customer CI Pipeline
 
 on:
   workflow_dispatch: 
-  
-permissions:
-  id-token: write     # 🔥 REQUIRED for OIDC
 
+  
 jobs:
   BUILD:
     runs-on: ubuntu-latest
@@ -16,8 +14,9 @@ jobs:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4  
         with:
-          role-to-assume: arn:aws:iam::074126659757:role/github_aws_role 
-          aws-region: us-east-2
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }} 
 
       - name: Login to Amazon ECR
         id: login-ecr
