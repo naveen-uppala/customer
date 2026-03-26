@@ -3,6 +3,8 @@ name: customer CI Pipeline
 on:
   workflow_dispatch: 
 
+permissions:
+  id-token: write
   
 jobs:
   BUILD:
@@ -14,8 +16,7 @@ jobs:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4  
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: arn:aws:iam::074126659757:role/github_ecr_role
           aws-region: ${{ vars.AWS_REGION }} 
 
       - name: Login to Amazon ECR
