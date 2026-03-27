@@ -32,7 +32,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: naveen-uppala/Infra-App-Deployment
-          path: App/helm-charts
+          # path: App/helm-charts
           token: ${{ secrets.GITHUB_TOKEN }}
 
       #  AWS Auth
@@ -59,7 +59,7 @@ jobs:
         uses: azure/setup-helm@v4
 
       #  Use CI run number as image tag
-      - name: Resolve Image Tag
+      - name: Set Image Tag
         id: image
         run: |
           if [ -n "${{ github.event.inputs.image_tag }}" ]; then
@@ -67,9 +67,11 @@ jobs:
           elif [ -n "${{ github.event.workflow_run.run_number }}" ]; then
             TAG="${{ github.event.workflow_run.run_number }}"
           else
-            echo "No image tag available"
+            echo "No image tag found"
             exit 1
           fi
+      
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
 
       #  Deploy
       - name: Deploy to EKS via Helm
@@ -77,7 +79,7 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ steps.image.outputs.tag }}
         run: |
-          CMD="helm upgrade --install ${{ vars.HELM_RELEASE_NAME }} ${{ vars.HELM_CHART_NAME }} \
+          CMD="helm upgrade --install ${{ vars.HELM_RELEASE_NAME }} .App/helm-charts/${{ vars.HELM_CHART_NAME }} \
             --namespace ${{ vars.K8S_NAMESPACE }} \
             --create-namespace \
             --set image.repository=$ECR_REGISTRY/${{ github.event.repository.name }} \
