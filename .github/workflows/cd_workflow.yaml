@@ -79,7 +79,7 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ steps.image.outputs.tag }}
         run: |
-          CMD="helm upgrade --install ${{ vars.HELM_RELEASE_NAME }} .App/helm-charts/${{ vars.HELM_CHART_NAME }} \
+          CMD="helm upgrade --install ${{ vars.HELM_RELEASE_NAME }} ./App/helm-charts/${{ vars.HELM_CHART_NAME }} \
             --namespace ${{ vars.K8S_NAMESPACE }} \
             --create-namespace \
             --set image.repository=$ECR_REGISTRY/${{ github.event.repository.name }} \
