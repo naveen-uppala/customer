@@ -70,7 +70,7 @@ jobs:
             echo "No image tag found"
             exit 1
           fi
-      
+          echo $TAG
           echo "tag=$TAG" >> $GITHUB_OUTPUT
 
       #  Deploy
