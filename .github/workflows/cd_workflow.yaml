@@ -1,6 +1,11 @@
 name: customer CD Pipeline
 
 on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Docker image tag to deploy"
+        required: false
   workflow_run:
     workflows: ["customer CI Pipeline"]
     types:
@@ -47,10 +52,17 @@ jobs:
         uses: azure/setup-helm@v4
 
       #  Use CI run number as image tag
-      - name: Set Image Tag
+      - name: Resolve Image Tag
         id: image
         run: |
-          echo "tag=${{ github.event.workflow_run.run_number }}" >> $GITHUB_OUTPUT
+          if [ -n "${{ github.event.inputs.image_tag }}" ]; then
+            TAG="${{ github.event.inputs.image_tag }}"
+          elif [ -n "${{ github.event.workflow_run.run_number }}" ]; then
+            TAG="${{ github.event.workflow_run.run_number }}"
+          else
+            echo "No image tag available"
+            exit 1
+          fi
 
       #  Deploy
       - name: Deploy to EKS via Helm
