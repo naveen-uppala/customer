@@ -6,6 +6,9 @@ on:
     types:
       - completed
 
+permissions:
+  id-token: write      
+
 jobs:
   DEPLOY:
     runs-on: ubuntu-latest
