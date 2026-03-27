@@ -1,0 +1,72 @@
+name: customer CD Pipeline
+
+on:
+  workflow_run:
+    workflows: ["customer CI Pipeline"]
+    types:
+      - completed
+
+jobs:
+  DEPLOY:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      #  Checkout Helm repo
+      - name: Checkout Helm charts repo
+        uses: actions/checkout@v4
+        with:
+          repository: naveen-uppala/Infra-App-Deployment
+          path: App/helm-charts
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      #  AWS Auth
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ vars.AWS_REGION }}
+          role-to-assume: arn:aws:iam::074126659757:role/github_ecr_role
+
+      #  Login to ECR
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      #  Configure kubectl
+      - name: Update kubeconfig for EKS
+        run: |
+          aws eks update-kubeconfig \
+            --region ${{ vars.AWS_REGION }} \
+            --name ${{ vars.EKS_CLUSTER_NAME }}
+
+      #  Install Helm
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+
+      #  Use CI run number as image tag
+      - name: Set Image Tag
+        id: image
+        run: |
+          echo "tag=${{ github.event.workflow_run.run_number }}" >> $GITHUB_OUTPUT
+
+      #  Deploy
+      - name: Deploy to EKS via Helm
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ steps.image.outputs.tag }}
+        run: |
+          helm upgrade --install ${{ vars.HELM_RELEASE_NAME }} ./helm/${{ vars.HELM_CHART_NAME }} \
+            --namespace ${{ vars.K8S_NAMESPACE }} \
+            --create-namespace \
+            --set image.repository=$ECR_REGISTRY/${{ github.event.repository.name }} \
+            --set image.tag=$IMAGE_TAG \
+            --set image.pullPolicy=Always \
+            --wait \
+            --timeout 5m0s
+
+      #  Verify
+      - name: Verify Deployment
+        run: |
+          kubectl rollout status deployment/${{ vars.HELM_RELEASE_NAME }} \
+            --namespace ${{ vars.K8S_NAMESPACE }} \
+            --timeout=3m
