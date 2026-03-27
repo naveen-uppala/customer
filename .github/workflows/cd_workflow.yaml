@@ -29,7 +29,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: naveen-uppala/Infra-App-Deployment
-          path: App/helm-charts
+          # path: App/helm-charts
           token: ${{ secrets.GITHUB_TOKEN }}
 
       #  AWS Auth
@@ -74,7 +74,7 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ steps.image.outputs.tag }}
         run: |
-          helm upgrade --install ${{ vars.HELM_RELEASE_NAME }} ./helm/${{ vars.HELM_CHART_NAME }} \
+          helm upgrade --install ${{ vars.HELM_RELEASE_NAME }} ./App/helm-charts/${{ vars.HELM_CHART_NAME }} \
             --namespace ${{ vars.K8S_NAMESPACE }} \
             --create-namespace \
             --set image.repository=$ECR_REGISTRY/${{ github.event.repository.name }} \
