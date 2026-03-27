@@ -81,12 +81,10 @@ jobs:
         run: |
           CMD="helm upgrade --install ${{ vars.HELM_RELEASE_NAME }} ./App/helm-charts/${{ vars.HELM_CHART_NAME }} \
             --namespace ${{ vars.K8S_NAMESPACE }} \
-            --create-namespace \
             --set image.repository=$ECR_REGISTRY/${{ github.event.repository.name }} \
             --set image.tag=$IMAGE_TAG \
             --set image.pullPolicy=Always \
-            --wait \
-            --timeout 5m0s"
+
       
           #  Add replicaCount only if provided
           if [ -n "${{ github.event.inputs.replicaCount }}" ]; then
