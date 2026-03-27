@@ -1,14 +1,14 @@
 name: customer CD Pipeline
 
 on:
-  workflow_dispatch:
-    inputs:
-      image_tag:
-        description: "Docker image tag to deploy"
-        required: false
-      replicaCount:
-        description: "Number of replicas"
-        required: false        
+  # workflow_dispatch:
+  #   inputs:
+  #     image_tag:
+  #       description: "Docker image tag to deploy"
+  #       required: false
+  #     replicaCount:
+  #       description: "Number of replicas"
+  #       required: false        
   workflow_run:
     workflows: ["customer CI Pipeline"]
     types:
