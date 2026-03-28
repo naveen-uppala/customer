@@ -83,7 +83,7 @@ jobs:
             --namespace ${{ vars.K8S_NAMESPACE }} \
             --set image.repository=$ECR_REGISTRY/${{ github.event.repository.name }} \
             --set image.tag=$IMAGE_TAG \
-            --set image.pullPolicy=Always \
+            --set image.pullPolicy=Always"
 
       
           #  Add replicaCount only if provided
