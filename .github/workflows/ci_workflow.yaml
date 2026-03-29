@@ -16,6 +16,9 @@ jobs:
     steps:
       - name: Clone Repository
         uses: actions/checkout@v4
+        with:
+          repository: naveen-uppala/frontend
+          token: ${{ secrets.GITHUB_TOKEN }}        
         
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4  
