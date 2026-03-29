@@ -16,23 +16,11 @@ jobs:
     steps:
       - name: Clone Repository
         uses: actions/checkout@v4
-
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v4
-        with:
-          languages: java  # Change if needed (e.g., python, java, csharp)
-          queries: security-extended
-
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v4
-
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v4
         
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4  
         with:
-          role-to-assume: arn:aws:iam::074126659757:role/github_ecr_role
+          role-to-assume: ${{ vars.AWS_ASSUME_ROLE }}
           aws-region: ${{ vars.AWS_REGION }} 
 
       - name: Login to Amazon ECR
