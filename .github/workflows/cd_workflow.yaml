@@ -61,16 +61,31 @@ jobs:
       #  Use CI run number as image tag
       - name: Set Image Tag
         id: image
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if [ -n "${{ github.event.inputs.image_tag }}" ]; then
+            # Manual dispatch with explicit tag
             TAG="${{ github.event.inputs.image_tag }}"
-          elif [ -n "${{ github.event.workflow_run.run_number }}" ]; then
+      
+          elif [ "${{ github.event_name }}" == "workflow_run" ]; then
+            # Triggered by CI pipeline — use its run number directly
             TAG="${{ github.event.workflow_run.run_number }}"
+      
           else
-            echo "No image tag found"
+            # Manual dispatch without tag — fetch last successful CI run number
+            echo "No tag provided, fetching last successful CI run..."
+            TAG=$(gh api \
+              "/repos/${{ github.repository_owner }}/customer/actions/workflows/ci_workflow.yaml/runs?status=success&per_page=1" \
+              --jq '.workflow_runs[0].run_number')
+          fi
+      
+          if [ -z "$TAG" ]; then
+            echo "ERROR: Could not determine image tag"
             exit 1
           fi
-          echo $TAG
+      
+          echo "Resolved image tag: $TAG"
           echo "tag=$TAG" >> $GITHUB_OUTPUT
 
       #  Deploy
