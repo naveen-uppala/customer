@@ -1,4 +1,4 @@
-name: customer CD Pipeline
+name: customer CD EKS Workflow
 
 on:
   workflow_dispatch:
