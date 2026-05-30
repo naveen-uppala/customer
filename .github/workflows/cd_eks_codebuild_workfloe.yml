@@ -1,0 +1,127 @@
+name: Customer CD CodeBuild EKS Workflow
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Docker image tag to deploy"
+        required: false
+      replicaCount:
+        description: "Number of replicas"
+        required: false
+  workflow_run:
+    workflows: ["Customer CI Pipeline"]
+    types:
+      - completed
+
+permissions:
+  id-token: write
+
+jobs:
+  DEPLOY:
+    runs-on: ubuntu-latest
+    if: >
+      ${{
+        github.event_name == 'workflow_dispatch' ||
+        (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+      }}
+
+    steps:
+      # Checkout Helm repo
+      - name: Checkout Helm charts repo
+        uses: actions/checkout@v4
+        with:
+          repository: naveen-uppala/Infra-App-Deployment
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # AWS Auth
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ vars.AWS_REGION }}
+          role-to-assume: ${{ vars.AWS_ASSUME_ROLE }}
+
+      # Login to ECR
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # Resolve Image Tag
+      - name: Set Image Tag
+        id: resolve_image_tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -n "${{ github.event.inputs.image_tag }}" ]; then
+            TAG="${{ github.event.inputs.image_tag }}"
+
+          elif [ "${{ github.event_name }}" == "workflow_run" ]; then
+            TAG="${{ github.event.workflow_run.run_number }}"
+
+          else
+            echo "No tag provided, fetching last successful CI run..."
+            TAG=$(gh api \
+              "/repos/${{ github.repository_owner }}/customer/actions/workflows/ci_workflow.yaml/runs?status=success&per_page=1" \
+              --jq '.workflow_runs[0].run_number')
+          fi
+
+          if [ -z "$TAG" ]; then
+            echo "ERROR: Could not determine image tag"
+            exit 1
+          fi
+
+          echo "Resolved image tag: $TAG"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+      # Trigger CodeBuild inside VPC to run helm deploy
+      # CodeBuild has access to private EKS endpoint via VPC
+      - name: Trigger CodeBuild for EKS Deployment
+        id: codebuild
+        env:
+          IMAGE_TAG: ${{ steps.resolve_image_tag.outputs.tag }}
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          BUILD_ID=$(aws codebuild start-build \
+            --project-name eks-deploy \
+            --environment-variables-override \
+              name=IMAGE_TAG,value=$IMAGE_TAG,type=PLAINTEXT \
+              name=ECR_REGISTRY,value=$ECR_REGISTRY,type=PLAINTEXT \
+              name=REPO_NAME,value=${{ github.event.repository.name }},type=PLAINTEXT \
+              name=HELM_RELEASE_NAME,value=${{ vars.HELM_RELEASE_NAME }},type=PLAINTEXT \
+              name=HELM_CHART_NAME,value=${{ vars.HELM_CHART_NAME }},type=PLAINTEXT \
+              name=K8S_NAMESPACE,value=${{ vars.K8S_NAMESPACE }},type=PLAINTEXT \
+              name=REPLICA_COUNT,value=${{ github.event.inputs.replicaCount || '' }},type=PLAINTEXT \
+              name=EKS_CLUSTER_NAME,value=${{ vars.EKS_CLUSTER_NAME }},type=PLAINTEXT \
+              name=AWS_REGION,value=${{ vars.AWS_REGION }},type=PLAINTEXT \
+            --region ${{ vars.AWS_REGION }} \
+            --query 'build.id' \
+            --output text)
+
+          echo "CodeBuild Build ID: $BUILD_ID"
+          echo "build_id=$BUILD_ID" >> $GITHUB_OUTPUT
+
+      # Poll CodeBuild until it completes
+      - name: Wait for CodeBuild to Complete
+        run: |
+          BUILD_ID="${{ steps.codebuild.outputs.build_id }}"
+          echo "Waiting for CodeBuild build: $BUILD_ID"
+
+          while true; do
+            STATUS=$(aws codebuild batch-get-builds \
+              --ids "$BUILD_ID" \
+              --region ${{ vars.AWS_REGION }} \
+              --query 'builds[0].buildStatus' \
+              --output text)
+
+            echo "Current status: $STATUS"
+
+            if [ "$STATUS" == "SUCCEEDED" ]; then
+              echo "✅ CodeBuild succeeded"
+              break
+            elif [ "$STATUS" == "FAILED" ] || [ "$STATUS" == "FAULT" ] || [ "$STATUS" == "STOPPED" ] || [ "$STATUS" == "TIMED_OUT" ]; then
+              echo "❌ CodeBuild failed with status: $STATUS"
+              exit 1
+            fi
+
+            sleep 15
+          done
